@@ -1,145 +1,112 @@
-# ✈️ Airline Passenger Demand Forecasting
+# Airline Passenger Demand Forecasting
 
-A comprehensive time series analysis project applying **13 forecasting models** to real-world airline passenger data, with the goal of optimising resource planning and demand management.
+A time-series modeling project comparing **13 forecasting approaches** on monthly airline passenger counts. The objective is to examine how trend and seasonality affect forecast quality and to compare statistical baselines with exponential-smoothing and ARIMA-family methods.
 
----
+## Problem statement
 
-## 📌 Problem Statement
+Use historical monthly passenger counts to forecast future demand and support planning for staffing, capacity, and operational resources.
 
-An airline company has collected monthly passenger count data over several years and wants to **forecast future passenger counts** to effectively plan budgeting, staffing, and operational resources.
+## Dataset
 
-> Given historical monthly passenger data (1949–1960), build and evaluate multiple time series models to forecast future demand.
-
----
-
-## 📂 Dataset
+The repository includes `AirPassengers.csv`, containing the classic monthly AirPassengers series.
 
 | Attribute | Description |
 |---|---|
-| `Month` | Month of observation (yyyy-mm format) |
-| `Passengers` | Number of air passengers recorded that month |
+| `Month` | Observation month |
+| `Passengers` | Monthly passenger count |
+| Period | January 1949 – December 1960 |
+| Frequency | Monthly |
+| Observations | 144 |
+| Training period | First 120 months |
+| Test period | Final 24 months |
 
-- **Source:** Classic AirPassengers dataset
-- **Period:** January 1949 – December 1960
-- **Frequency:** Monthly (144 observations)
-- **Train/Test Split:** 120 months training | 24 months testing
+The train/test split is chronological, preserving the time ordering of the observations.
 
----
+## Forecasting approaches
 
-## 🧪 Models Implemented
+The notebook compares 13 models:
 
-### Simple / Baseline Models
-| Model | Description |
+| Family | Models |
 |---|---|
-| Naive | Uses the last observed value as the forecast |
-| Simple Average | Mean of all training observations |
-| Simple Moving Average | Rolling mean over a fixed window |
-| Linear Regression | Trend-based regression on time index |
+| Baselines and trend | Linear Regression, Naive, Simple Average, Simple Moving Average |
+| Exponential smoothing | Simple Exponential Smoothing, Holt's Method, Holt-Winters Additive, Holt-Winters Multiplicative |
+| Autoregressive models | AR, MA, ARMA, ARIMA, SARIMA |
 
-### Exponential Smoothing Models
-| Model | Description |
-|---|---|
-| Simple Exponential Smoothing (SES) | Weighted average with single smoothing parameter |
-| Holt's Method | Captures level + trend |
-| Holt-Winters' Additive | Captures level + trend + additive seasonality |
-| Holt-Winters' Multiplicative | Captures level + trend + multiplicative seasonality |
+## Methodology
 
-### ARIMA Family Models
-| Model | Description |
-|---|---|
-| AR | Autoregressive model |
-| MA | Moving Average model |
-| ARMA | Autoregressive Moving Average |
-| ARIMA | Autoregressive Integrated Moving Average |
-| SARIMA | Seasonal ARIMA with Box-Cox transformation |
+1. Parse and sort the monthly date column.
+2. Reserve the last 24 observations as a chronological test set.
+3. Explore the series trend and seasonal structure.
+4. Compare baseline forecasts with exponential smoothing models.
+5. Use ACF/PACF plots and differencing to inform AR-family model specification.
+6. Apply a Box-Cox transformation with `lambda=0` (a natural-log transformation) for the AR-family experiments and reverse the transformation for forecast evaluation.
+7. Evaluate forecasts on the held-out observations using RMSE and MAPE.
 
----
+## Test-set performance
 
-## 🔬 Methodology
+The values below are read from the saved notebook outputs. Lower is better for both metrics.
 
-### Data Preparation
-- Datetime parsing and chronological sorting
-- Train/test split (120/24 months)
-- Stationarity assessment via ACF and PACF plots
-- Seasonal decomposition (trend, seasonality, residual)
+| Model | RMSE | MAPE |
+|---|---:|---:|
+| Linear Regression | 74.81 | 11.22% |
+| Naive | 137.33 | 23.58% |
+| Simple Average | 219.44 | 44.23% |
+| Simple Moving Average | 120.51 | 19.27% |
+| Simple Exponential Smoothing | 137.33 | 23.58% |
+| Holt's Method | 115.70 | 18.41% |
+| Holt-Winters Additive | 35.76 | 6.64% |
+| **Holt-Winters Multiplicative** | **32.49** | **6.39%** |
+| AR | 70.57 | 11.62% |
+| MA | 76.28 | 15.33% |
+| ARMA | 83.36 | 17.20% |
+| ARIMA | 79.35 | 13.84% |
+| SARIMA | 77.65 | 10.00% |
 
-### Feature Engineering & Transformations
-- **Box-Cox transformation** applied prior to SARIMA to stabilise variance
-- Contextual lag features for ARIMA-family parameter selection
-- ACF/PACF analysis used to determine optimal p, d, q parameters
+### Main finding
 
-### Final SARIMA Configuration
-```
-SARIMA(p=7, d=1, q=4)(P=0, D=1, Q=0, m=3)
-```
-- Non-seasonal differencing order: 1
-- Seasonal differencing applied to capture annual patterns
-- Box-Cox inverse transformation applied to predictions
+**Holt-Winters Multiplicative** has the lowest RMSE and MAPE among the reported models. This is consistent with a series where seasonal variation grows with the overall level.
 
-### Evaluation Metrics
-All models evaluated on the **24-month held-out test set** using:
-- **RMSE** — Root Mean Squared Error (penalises large errors)
-- **MAPE** — Mean Absolute Percentage Error (interpretable % accuracy)
+The notebook's SARIMA specification is `(7,1,4) × (0,1,0,3)`. Because the data are monthly, `m=3` represents a three-observation seasonal lag, not a 12-month annual seasonal cycle. The README previously described this as annual seasonality; that interpretation should not be made without re-running the experiment using `m=12` and comparing results.
 
----
+The ARIMA branch's inverse-differencing/reconstruction steps should also be checked before relying on its reported metric as a fully comparable forecast result. The performance table is reproduced from the notebook outputs, not independently re-run here.
 
-## 📊 Key Findings
+## Technology stack
 
-- Baseline models (Naive, Simple Average) fail to capture seasonal growth patterns
-- Holt-Winters' Multiplicative outperforms additive due to the multiplicative nature of seasonality in airline data
-- SARIMA with Box-Cox transformation delivers the best performance by jointly modelling trend, seasonality, and autocorrelation structure
-- ACF/PACF analysis was critical in guiding ARIMA parameter selection and confirming stationarity after differencing
+- Python, pandas, NumPy
+- Statsmodels: exponential smoothing, ARIMA, SARIMA
+- scikit-learn: Linear Regression and RMSE
+- SciPy: Box-Cox transformation
+- Matplotlib and Seaborn: visualization
 
----
+## Repository contents
 
-## 🛠️ Tech Stack
-
-| Tool | Purpose |
-|---|---|
-| Python | Core programming language |
-| Pandas / NumPy | Data manipulation and numerical operations |
-| Statsmodels | ARIMA, SARIMA, Exponential Smoothing models |
-| Scikit-learn | Linear Regression, RMSE computation |
-| Matplotlib / Seaborn | Visualisation and model comparison plots |
-| SciPy | Box-Cox transformation |
-
----
-
-## 📁 Repository Structure
-
-```
-├── TSA_Graded_Exercise.ipynb   # Main notebook with full analysis
-├── AirPassengers.csv           # Dataset
-└── README.md                   # Project documentation
+```text
+.
+├── AirPassengers.csv
+├── TSA_Graded_Exercise.ipynb
+└── README.md
 ```
 
----
-
-## 🚀 How to Run
+## How to run
 
 ```bash
-# Clone the repository
 git clone https://github.com/piyush0920/airline-passenger-forecasting.git
 cd airline-passenger-forecasting
 
-# Install dependencies
-pip install pandas numpy matplotlib seaborn statsmodels scikit-learn scipy
-
-# Launch the notebook
+pip install pandas numpy matplotlib seaborn statsmodels scikit-learn scipy jupyter
 jupyter notebook TSA_Graded_Exercise.ipynb
 ```
 
----
+Run the notebook cells in order. The CSV is already included in the repository.
 
-## 💡 Business Relevance
+## Limitations and next steps
 
-This project mirrors real-world demand forecasting challenges faced by global companies — including supply chain planning, inventory optimisation, and resource allocation. The systematic model comparison framework (from naive baselines to seasonal ARIMA) demonstrates a rigorous, evidence-based approach to selecting the right forecasting model for a given dataset.
+- This is a small, historical, univariate dataset; it does not include explanatory drivers such as price, capacity, or macroeconomic conditions.
+- Validate seasonal periods and forecast reconstruction steps before making model-selection claims.
+- Use rolling-origin validation to test stability across multiple forecast origins.
+- Compare seasonal models with a consistent 12-month annual period for monthly data.
 
----
+## Author
 
-## 👤 Author
-
-**Piyush Sharma**
-- 📧 piyushsh0920@gmail.com
-- 🔗 [LinkedIn](https://linkedin.com/in/piyush-sharma-6591171ba)
-- 💻 [GitHub](https://github.com/piyush0920)
+**Piyush Sharma**  
+[GitHub](https://github.com/piyush0920) · [Portfolio](https://piyush0920.github.io/) · [LinkedIn](https://linkedin.com/in/piyush-sharma-6591171ba)
